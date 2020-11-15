@@ -1,0 +1,153 @@
+---
+title: "Association Rules"
+author: "Truong Thi An Hai"
+date: "7/11/2020"
+output: html_document
+---
+
+```{r include = FALSE}
+library(arules)
+library(arulesViz)
+```
+### Create a frequent item plot, and a frequent item table. 
+```{r}
+txn = read.transactions("C:/Users/hp/Desktop/AssociationRules.csv")
+#frequent item plot
+itemFrequencyPlot(txn)
+#frequent item table
+tab <- itemFrequency(txn)
+head(tab)
+
+```
+#### a. Determine the most frequent item bought in the store.
+```{r}
+tail(sort(tab),1)
+```
+
+#### b. How many items were bought in the largest transaction?
+```{r}
+max(colSums(txn@data))
+
+```
+
+###  Mine the Association rules with a minimum Support of 1% and a minimum Confidence of 0%.
+```{r}
+rules = apriori(txn, parameter=list(support=0.01, confidence=0.0))
+```  
+#### c. How many rules appear in the data?  
+
+Number of rules will appear in "Writing ...[... rule(s)]"
+
+In this task, number of rules is 11524
+
+#### d. How many rules are observed when the minimum confidence is 50%.
+```{r}
+rules = apriori(txn, parameter=list(support=0.01, confidence=0.5))
+```
+
+Number of rules is 1165
+
+#### e. Explain how the specified confidence impacts the number of rules. 
+
+The specified confidence, say 50%, reduces the number of rules by only considering the transactions that have at least a pair of items at least 50% of the time.
+
+###  Create a scatter plot comparing the parameters support and confidence on the axis, and lift with shading.  
+```{r warning=FALSE}
+rules <- apriori(txn,parameter =list(supp=0.01,conf =0.0),control = list(verbose = FALSE))
+plot(rules, jitter = 0)
+
+```
+
+#### f. Identify the positioning of the interesting rules. 
+
+The interesting rules have high confidence and high lift, they would be located on the top left of the plot.
+
+### Compare support and lift.   
+
+#### g. Create a scatter plot measuring support vs. lift; record your observations. 
+```{r warning=FALSE}
+plot(rules, measure = c("support", "lift"), shading = "confidence", jitter = 0)
+```  
+
+#### h. Where are the rules located that would be considered interesting and useful? 
+
+The most important rules would be located on the top left of the graph.
+
+#### i. One downside to the Apriori algorithm, is that extraneous rules can be generated that are not particularly useful.  Identify where these rules are located on the graph.  Explain the relationship between the expected observation of these itemsets and the actual observation of the itemsets. 
+
+The rules that are not particularly useful have high confidence but low lift. They would be considered coincidental would be on the bottom left of the graph. 
+
+#### j. Using the interaction tool for a scatter plot, identify 3 rules that appear in at least 10% of the transactions by coincidence.
+```{r warning=FALSE}
+rules1 <- apriori(txn,parameter =list(supp=0.1,conf =0.0),control = list(verbose = FALSE))
+plot(rules1, engine = "htmlwidget", jitter = 0)
+```   
+Identify 3 rules that appear in at least 10% of the transactions by coincidence: 
+
+item37 -> item13  
+
+item20 -> item13 
+
+item3 -> item13 
+
+###  Identify the most interesting rules by extracting the rules in which the Confidence is >0.8. Observe the output of the data table for the most interesting rules.
+```{r}
+subrules <- subset(rules,rules@quality$confidence>0.8)
+inspect(subrules)
+```
+
+#### k. Sort the rules stating the highest lift first.  Provide the 10 rules with the lowest lift. Do they appear to be coincidental (Use lift = 2 as baseline for coincidence)?  Why or why not? 
+```{r}
+a <- sort(subrules, by = "lift")
+inspect(a)
+#Provide the 10 rules with the lowest lift
+inspect(tail(a,10))
+```  
+
+Yes, they appear to be coincidental (except rule ##1). Because they have high confidence but low lift (lift <2).
+
+### Create a Matrix-based visualization of two measures with colored squares.  The two measures should compare confidence and lift (have recorded = FALSE).  Note that 4 interesting rules stand out on the graph. 
+```{r}
+plot(subrules, method="matrix",shading = c("lift","confidence"), control = list(reorder = FALSE))
+
+```
+
+#### m. What can you infer about rules represented by a dark blue color? 
+
+Rules in a dark (deep) blue color suggest that we are likely to see these itemsets paired together by coincidence making them interesting but not important rules 
+
+### Extract the three rules with the highest lift.
+
+#### n. Record the Rules.  Explain why these rules vary from the rules in Step 3. 
+```{r}
+subrules2 <- head(sort(rules, by="lift"), 3)
+inspect(subrules2)
+```
+
+These rules vary from earlier because the associations between these items happen more than expected (high lift), but they do not occur more than 80% of the time.
+
+#### o. Create a Graph-based visualization with items and rules as vertices
+```{r}
+ plot(subrules2, method="graph")
+```
+
+#### p. Based on your observations, explain how you would expect association rules to relate to order (i.e. the number of items contained in the rule).
+
+- Support and order have a strong inverse relationship 
+
+- These rules vary from earlier because the associations between these items happen more than expected, but they do not occur more than 80% of the time.  
+
+### Create a training set from the first 8,000 transactions. Create a testing set from the last 2,000 transactions.  Run the algorithm on each dataset.  Compare the results.
+```{r}
+train_set = head(txn, 8000)
+test_set = tail(txn, 2000)
+rules_train = apriori(train_set, parameter = list(supp =0.01, conf = 0.8),control = list(verbose = FALSE))
+inspect(rules_train)
+rules_test = apriori(test_set, parameter = list(supp =0.01, conf = 0.8),control = list(verbose = FALSE))
+inspect(rules_test)
+
+```  
+
+We see that majority of the rules that are present in the training set are also present in the hold out set with similar support and confidences.  
+
+=> We can conclude by making a test set from hold out data that the rules generated by the algorithm are true for the population we are studying.
