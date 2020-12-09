@@ -1,0 +1,71 @@
+2_1
+With Newtab AS (
+    SELECT DISTINCT c.SalesPerson,  ClientNumber = COUNT(*) OVER (PARTITION BY c.SalesPerson)
+    FROM [SalesLT].[Customer] AS c
+    )
+SELECT  n.SalesPerson, n.ClientNumber, 
+RANK() OVER (ORDER BY n.ClientNumber DESC) AS rank
+FROM Newtab AS n;
+2_2
+With Newtab AS (
+    SELECT DISTINCT c.SalesPerson,  NumberOfSales = COUNT(h.SalesOrderID) OVER (PARTITION BY c.SalesPerson)
+    FROM [SalesLT].[SalesOrderHeader] as h
+    RIGHT OUTER JOIN [SalesLT].[Customer] AS c
+            ON h.CustomerID = c.CustomerID
+    )
+SELECT  n.SalesPerson, n.NumberOfSales, 
+DENSE_RANK() OVER (ORDER BY n.NumberOfSales DESC) AS rank
+FROM Newtab AS n;
+2_3
+With Newtab AS (
+    SELECT DISTINCT c.SalesPerson,  Total = SUM(h.SubTotal) OVER (PARTITION BY c.SalesPerson)
+    FROM [SalesLT].[SalesOrderHeader] as h
+    RIGHT OUTER JOIN [SalesLT].[Customer] AS c
+            ON h.CustomerID = c.CustomerID
+    )
+SELECT  n.SalesPerson, n.Total, 
+RANK() OVER (ORDER BY n.Total DESC) AS rank
+FROM Newtab AS n;
+2_4
+WITH New AS (
+    SELECT  DISTINCT a.StateProvince, a.CountryRegion,  
+    NumberOfCustomer = COUNT(ca.CustomerID) OVER (PARTITION BY a.StateProvince)
+    FROM [SalesLT].[CustomerAddress] as ca
+    JOIN [SalesLT].[Address] as a 
+     ON a.AddressID = ca.AddressID
+    WHERE ca.AddressType = 'Main Office'
+    )
+SELECT New.StateProvince, New.CountryRegion, New.NumberOfCustomer,
+PERCENT_RANK() OVER (PARTITION BY New.CountryRegion ORDER BY New.NumberOfCustomer DESC) AS Rank
+FROM New;
+2_5
+WITH New AS (
+    SELECT  DISTINCT a.StateProvince, a.CountryRegion,  
+    NumberOfCustomer = COUNT(ca.CustomerID) OVER (PARTITION BY a.StateProvince)
+    FROM [SalesLT].[CustomerAddress] as ca
+    JOIN [SalesLT].[Address] as a 
+     ON a.AddressID = ca.AddressID
+    WHERE ca.AddressType = 'Main Office'
+    )
+SELECT New.StateProvince, New.CountryRegion, New.NumberOfCustomer,
+DENSE_RANK() OVER (PARTITION BY New.CountryRegion ORDER BY New.NumberOfCustomer DESC) AS Rank
+FROM New
+UNION
+SELECT null, null, count(c.CustomerID)- count(ca.CustomerID) ,null
+FROM [SalesLT].[Customer] as c 
+LEFT JOIN [SalesLT].[CustomerAddress] as ca 
+ON c.CustomerID = ca.CustomerID
+ORDER BY 2, RANK, 1;
+2_6
+WITH New AS (
+    SELECT  DISTINCT a.City, a.StateProvince, a.CountryRegion,  
+    NumberOfCustomer = COUNT(ca.CustomerID) OVER (PARTITION BY a.City)
+    FROM [SalesLT].[CustomerAddress] as ca
+    JOIN [SalesLT].[Address] as a 
+     ON a.AddressID = ca.AddressID
+    WHERE ca.AddressType = 'Main Office'
+    )
+SELECT New.City, New.StateProvince, New.CountryRegion, New.NumberOfCustomer,
+RANK() OVER (PARTITION BY New.CountryRegion ORDER BY New.NumberOfCustomer DESC) AS Rank,
+New.NumberOfCustomer - LAG(New.NumberOfCustomer,1) OVER (PARTITION BY New.CountryRegion ORDER BY New.NumberOfCustomer DESC) AS Diferent
+FROM New;

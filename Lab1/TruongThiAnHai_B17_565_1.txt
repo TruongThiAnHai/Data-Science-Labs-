@@ -1,0 +1,73 @@
+1_1a
+SELECT p.ProductID, c.CustomerID, c.SalesPerson, SUM(d.LineTotal) AS Total
+FROM [SalesLT].[SalesOrderHeader] as h
+INNER JOIN [SalesLT].[Customer] as c 
+    ON c.CustomerID = h.CustomerID
+INNER JOIN [SalesLT].[SalesOrderDetail] as d 
+    ON d.SalesOrderID = h.SalesOrderID
+INNER JOIN [SalesLT].[Product] as p 
+    ON p.ProductID = d.ProductID
+GROUP BY CUBE (p.ProductID, c.CustomerID, c.SalesPerson);
+1_1b
+SELECT p.ProductID, c.CustomerID, c.SalesPerson, SUM(d.LineTotal) as Total
+FROM [SalesLT].[SalesOrderHeader] as h
+RIGHT OUTER JOIN [SalesLT].[Customer] as c 
+    ON c.CustomerID = h.CustomerID
+INNER JOIN [SalesLT].[SalesOrderDetail] as d 
+    ON d.SalesOrderID = h.SalesOrderID
+RIGHT OUTER JOIN [SalesLT].[Product] as p 
+    ON p.ProductID = d.ProductID
+GROUP BY CUBE (p.ProductID, c.CustomerID, c.SalesPerson)
+ORDER BY 1,2,3;
+1_2
+SELECT p.ProductID, c.CustomerID, a.CountryRegion as CountryForShipping,
+    a.CountryRegion as ClientResidency, SUM(d.LineTotal) as Total
+FROM [SalesLT].[SalesOrderHeader] as h
+INNER JOIN [SalesLT].[Customer] as c 
+    ON c.CustomerID = h.CustomerID
+INNER JOIN [SalesLT].[CustomerAddress] as ca 
+    ON ca.CustomerID = c.CustomerID
+INNER JOIN [SalesLT].[SalesOrderDetail] as d 
+    ON d.SalesOrderID = h.SalesOrderID
+INNER JOIN [SalesLT].[Product] as p 
+    ON p.ProductID = d.ProductID
+INNER JOIN [SalesLT].[Address] as a 
+    ON a.AddressID = h.ShipToAddressID AND a.AddressID = ca.AddressID
+GROUP BY GROUPING SETS ((ROLLUP (p.ProductID, a.CountryRegion,c.CustomerID)), 
+    (a.CountryRegion))
+ORDER BY 1,2,3,4;
+1_3
+SELECT a.City, a.StateProvince, a.CountryRegion, SUM (d.LineTotal) as Total, 
+	SUM (d.OrderQty*d.UnitPrice*d.UnitPriceDiscount) as Discounts
+FROM [SalesLT].[Address] as a 
+INNER JOIN [SalesLT].[SalesOrderHeader] as h 
+    ON h.ShipToAddressID = a.AddressID
+INNER JOIN [SalesLT].[SalesOrderDetail] as d 
+    ON d.SalesOrderID = h.SalesOrderID
+GROUP BY ROLLUP (a.CountryRegion, a.StateProvince, a.City)
+ORDER BY 1,2,3;
+1_4
+SELECT  p.ProductID, pc.ProductCategoryID, pc.ParentProductCategoryID, SUM (d.LineTotal) as Total, SUM (d.OrderQty*d.UnitPrice*d.UnitPriceDiscount) as Discounts
+FROM [SalesLT].[ProductCategory] AS pc
+RIGHT OUTER JOIN [SalesLT].[Product] AS p 
+    ON p.ProductCategoryID = pc.ProductCategoryID
+INNER JOIN [SalesLT].[SalesOrderDetail] as d 
+    ON d.ProductID = p.ProductID
+GROUP BY ROLLUP (pc.ParentProductCategoryID, pc.ProductCategoryID, p.ProductID);
+1_5
+SELECT p.ProductID, c.CustomerID, c.SalesPerson,  
+a.City, a.StateProvince, a.CountryRegion, COUNT (d.OrderQty) as Number
+FROM [SalesLT].[SalesOrderHeader] AS h
+RIGHT OUTER JOIN [SalesLT].[Customer] AS c 
+    ON c.CustomerID = h.CustomerID
+INNER JOIN [SalesLT].[SalesOrderDetail] AS d 
+    ON d.SalesOrderID = h.SalesOrderID
+RIGHT OUTER JOIN [SalesLT].[Product] AS p 
+    ON p.ProductID = d.ProductID
+INNER JOIN [SalesLT].[Address] AS a 
+    ON a.AddressID = h.ShipToAddressID
+GROUP BY GROUPING SETS ((p.ProductID, c.CustomerID), (p.ProductID), (c.CustomerID),
+(c.SalesPerson), (p.ProductID,c.SalesPerson), ROLLUP (a.CountryRegion, a.StateProvince, a.City));
+
+
+
