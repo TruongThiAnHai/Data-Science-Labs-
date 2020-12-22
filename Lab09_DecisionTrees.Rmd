@@ -1,0 +1,136 @@
+---
+title: "Decision Trees"
+author: "Truong Thi An Hai"
+date: "12/18/2020"
+output: html_document
+---
+
+```{r}
+#Import survey.csv
+data = read.csv("C:/Users/hp/Desktop/survey.csv")
+#Split data
+data_train = head(data,600)
+data_test = tail(data, 150)
+```
+
+### a. Build a classification tree from the training data.  Which features were actually used to construct the tree? Plot the tree using the “rpart.plot” package.
+```{r}
+library(rpart)
+library(rpart.plot)
+
+decision_tree <- rpart(as.factor(MYDEPV) ~ Price + Income + Age, data = data_train, method = 'class', parms = list(split = 'information'))
+printcp(decision_tree)
+#Plot the tree
+rpart.plot(decision_tree,extra = 106)
+```  
+
+#### Features were actually used to construct the tree: Age, Income, Price
+
+#### There are 11 internal nodes in the tree, and the tree high is 6. 
+
+### b. Score the model with the training data and create the model’s confusion matrix.  Which class of MYDEPV was the model better able to classify?
+
+```{r message=FALSE}
+library(caret)
+Pred <- predict(decision_tree, data_train, type = 'class')
+Matrix <- confusionMatrix(Pred, as.factor(data_train$MYDEPV))
+Matrix
+```   
+
+#### As the missclassification rates for both classes are almost equal, one can conclude that each class was classified equally well 
+
+#### The zero class missclassification rate: 26/(26+314) = `r 26/(26+314)`  
+
+#### The one class missclassification rate: 19/(19+241) = `r 19/(19+241)`  
+
+
+### c. Define the resubstitution error rate, and then calculate it using the confusion matrix from the previous step.  Is it a good indicator of predictive performance?  Why or why not? 
+
+
+#### The resubstitution error rate is the number of incorrect classifications divided by the total number of classifications.
+
+#### The resubstitution error rate: (19 + 26)/(19 + 26 + 314 +241) = `r (19 + 26)/(19 + 26 + 314 +241)`  
+
+#### In that case, it is a good indicator of predictive performance because the training data is used to train the tree and the tree usually doing well on its training data.  
+
+### d.Using the “ROCR” package, plot the receiver operating characteristic (ROC) curve. Calculate the area under the ROC curve (AUC).  Describe the usefulness of this statistic. 
+
+```{r}
+library(ROCR)
+
+pred <- prediction(predict(decision_tree, type="prob")[,2], data_train$MYDEPV)
+#Plot the ROC curve
+roc <- performance(pred, "tpr", "fpr")
+plot(roc, col='blue', main='ROC Analysis, using library ROCR')
+lines(x=c(0, 1), y=c(0, 1), col="red", lwd=2)
+# Calculate the area under the ROC curve
+auc <- performance(pred, "auc")
+auc@y.values
+```  
+#### The value of AUC is equal to the probability that a classifier will rank a randomly chosen positive instance higher than a randomly chosen negative one.
+#### ROC analysis for the tree: 
+
+- For your tree, the ROC curve is a non-decreasing curve. 
+
+- For your tree, the ROC curve is in the form of two connected line segments. 
+
+### e. Score the model with the testing data.  How accurate are the tree’s predictions? 
+
+```{r}
+Pred <- predict(decision_tree, data_test, type = 'class')
+Matrix <- confusionMatrix(Pred, as.factor(data_test$MYDEPV))
+Matrix
+
+``` 
+
+#### The zero class missclassification rate: 10/(10+76) = `r 10/(10+76)`  
+
+#### The one class missclassification rate: 6/(6+58) = `r 6/(6+58)` 
+
+- The model performed well for both classes
+
+- Due to the small amount of testing data, one can conclude that each class was classified almost equally well or bad. 
+
+### f. Repeat part (a), but set the splitting index to the Gini coefficient splitting index.  How does the new tree compare to the previous one? 
+
+```{r}
+gini_tree <- rpart(as.factor(MYDEPV) ~ Price + Income + Age, data = data_train, method = 'class', parms = list(split = 'gini'))
+printcp(gini_tree)
+#Plot the tree
+rpart.plot(gini_tree,extra = 106)
+```  
+
+#### In this case, the same model is created regardless of our choice of splitting index. That difference/similarity is not generally the case.  
+
+### g. Pruning is a technique that reduces the size/depth of a decision tree by removing sections with low classification power, which helps reduce overfitting and simplifies the model, reducing the computational cost.  One way to prune a tree is according to the complexity parameter associated with the smallest cross-validation error.  Prune the new tree in this way using the “prune” function.  Which features were actually used in the pruned tree?  Why were certain variables not used?  
+
+#### Based on the results of step a, cross-validation error min when cp = 0.011538 
+
+```{r}
+pruned <- prune(decision_tree, cp=0.011538)
+printcp(pruned)
+rpart.plot(pruned, extra = 106)
+
+```  
+
+#### Features were actually used to construct the tree: Age, Income, Price
+
+#### There are 5 internal nodes in the tree, and the tree high is 3. 
+
+### h. Create the confusion matrix for the new model, and compare the performance of the model before and after pruning.
+
+```{r}
+Pred <- predict(pruned, data_train, type = 'class')
+Matrix <- confusionMatrix(Pred, as.factor(data_train$MYDEPV))
+Matrix
+``` 
+
+#### The zero class missclassification rate: 18/(18+322) = `r 18/(18+322)`  
+
+#### The one class missclassification rate: 43/(43+217) = `r 43/(43+217)` 
+
+#### The overall missclassification rate: (18+43)/600 = `r (18+43)/600`  
+
+#### Overall model performance is slightly deteriorated, but essentially they are same  
+
+

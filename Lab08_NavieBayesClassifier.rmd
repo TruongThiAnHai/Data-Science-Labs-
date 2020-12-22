@@ -1,0 +1,211 @@
+---
+title: "Naive Bayes Classifier"
+author: "Truong Thi An Hai"
+date: "12/12/2020"
+output: html_document
+---
+## *** Part I ***
+
+###  In this assignment you will train a Naïve Bayes classifier on categorical data and predict individuals’ incomes.  Import the nbtrain.csv file.  Use the first 9010 records as training data and the remaining 1000 records as testing data.
+
+```{r}
+#Import nbtrain.csv
+data = read.csv("C:/Users/hp/Desktop/nbtrain.csv")
+#Split training data vs testing data
+library(caret)
+
+data_train <- head(data, 9010)
+data_test <- tail(data, 1000)
+
+```   
+
+### a. Construct the Naïve Bayes classifier from the training data, according to the formula “income ~ age + sex + educ”.  To do this, use the “naiveBayes” function from the “e1071” package.  Provide the model’s a priori and conditional probabilities.  
+```{r}
+library(e1071)
+NBclassfier <- naiveBayes(as.factor(income) ~ age + sex + educ, data=data_train)
+NBclassfier
+
+```  
+
+### A-priori probabilities:  
+
+- Income is in the range 10-50K: 0.803 
+
+- Income is in the range 50-80K: 0.126  
+
+- Income is in the range GT 80K: 0.072  
+
+### Conditional probabilities 
+
+#### Age
+```{r}
+NBclassfier$tables$age
+``` 
+
+#### Sex
+```{r}
+NBclassfier$tables$sex
+```   
+
+#### Education
+```{r}
+NBclassfier$tables$educ
+``` 
+
+### b. Score the model with the testing data and create the model’s confusion matrix.  Also, calculate the overall, 10-50K, 50-80K, and GT 80K misclassification rates. Explain the variation in the model’s predictive power across income classes.  
+
+```{r}
+testPred <- predict(NBclassfier, data_test, type="class")
+message("Confusion Matrix for Test Data")
+Matrix <- confusionMatrix(testPred, as.factor(data_test$income))
+Matrix
+```   
+##### The overall misclassification rate: 1 - Accuracy = `r 1 - Matrix$overall[1]`
+
+```{r}
+library(shipunov)
+Misclass(testPred, as.factor(data_test$income))
+
+```
+- The 10-50K misclassification rate: 0.8%  
+
+- The 50-80K misclassification rate: 100%  
+
+- The GT 80K misclassification rate: 89.3% 
+
+In this model variation is explaeined mostly by confusion matrix
+
+## *** Part II ***  
+
+### As in assignment I, import the nbtrain.csv file.  Use the first 9010 records as training data and the remaining 1000 records as testing data.
+
+```{r}
+#Import nbtrain.csv
+data = read.csv("C:/Users/hp/Desktop/nbtrain.csv")
+#Split training data vs testing data
+
+data_train <- head(data, 9010)
+data_test <- tail(data, 1000)
+
+```  
+
+### a. Construct the classifier according to the formula “sex ~ age + educ + income”, and calculate the overall, female, and male misclassification rates.  Explain the misclassification rates?
+```{r}
+
+NBclassfier <- naiveBayes(as.factor(sex) ~ age + income + educ, data=data_train)
+NBclassfier
+testPred <- predict(NBclassfier, data_test, type="class")
+Matrix <- confusionMatrix(testPred, as.factor(data_test$sex))
+```    
+
+##### The overall misclassification rate: 1 - Accuracy = `r 1 - Matrix$overall[1]`
+
+```{r}
+
+Misclass(testPred, as.factor(data_test$sex))
+```
+- The female misclassification rate: 75.2%  
+
+- The male misclassification rate: 16.9%  
+
+### b. Divide the training data into two partitions, according to sex, and randomly select 3500 records from each partition.  Reconstruct the model from part (a) from these 7000 records.  Provide the model’s a priori and conditional probabilities.
+
+```{r message= FALSE}
+library(dplyr)
+
+#Divide the training data into two partitions
+data_female = subset(data_train, data_train$sex == 'F')
+data_male = subset(data_train, data_train$sex=='M')
+#Randomly select 3500 records from each partition
+data_female = sample_n(data_female, 3500)
+data_male = sample_n(data_male, 3500)
+new_data = rbind(data_male,data_female)
+model <- naiveBayes(as.factor(sex) ~ age + income + educ, data=new_data)
+message("Model Navie Bayes Classifier")
+model
+```
+
+The a priori probabilities are equal and the conditional probabilities are very similar. 
+
+#### c. How well does the model classify the testing data?  
+```{r}
+testPred <- predict(model, data_test, type="class")
+Matrix <- confusionMatrix(testPred, as.factor(data_test$sex))
+Matrix$table
+message("Accuracy")
+Matrix$overall[1]
+```  
+
+### d. Repeat step (b) 4 several times.  What effect does the random selection of records have on the model’s performance?  
+
+
+1. 
+```{r}
+#Divide the training data into two partitions
+data_female = subset(data_train, data_train$sex == 'F')
+data_male = subset(data_train, data_train$sex=='M')
+#Randomly select 3500 records from each partition
+data_female = sample_n(data_female, 3500)
+data_male = sample_n(data_male, 3500)
+new_data = rbind(data_male,data_female)
+model <- naiveBayes(as.factor(sex) ~ age + income + educ, data=new_data)
+model
+testPred <- predict(model, data_test, type="class")
+Matrix <- confusionMatrix(testPred, as.factor(data_test$sex))
+message("Accuracy")
+Matrix$overall[1]
+```  
+
+2. 
+```{r}
+#Divide the training data into two partitions
+data_female = subset(data_train, data_train$sex == 'F')
+data_male = subset(data_train, data_train$sex=='M')
+#Randomly select 3500 records from each partition
+data_female = sample_n(data_female, 3500)
+data_male = sample_n(data_male, 3500)
+new_data = rbind(data_male,data_female)
+model <- naiveBayes(as.factor(sex) ~ age + income + educ, data=new_data)
+model
+testPred <- predict(model, data_test, type="class")
+Matrix <- confusionMatrix(testPred, as.factor(data_test$sex))
+message("Accuracy")
+Matrix$overall[1]
+```    
+
+3. 
+```{r}
+#Divide the training data into two partitions
+data_female = subset(data_train, data_train$sex == 'F')
+data_male = subset(data_train, data_train$sex=='M')
+#Randomly select 3500 records from each partition
+data_female = sample_n(data_female, 3500)
+data_male = sample_n(data_male, 3500)
+new_data = rbind(data_male,data_female)
+model <- naiveBayes(as.factor(sex) ~ age + income + educ, data=new_data)
+model
+testPred <- predict(model, data_test, type="class")
+Matrix <- confusionMatrix(testPred, as.factor(data_test$sex))
+message("Accuracy")
+Matrix$overall[1]
+```    
+
+4. 
+```{r}
+#Divide the training data into two partitions
+data_female = subset(data_train, data_train$sex == 'F')
+data_male = subset(data_train, data_train$sex=='M')
+#Randomly select 3500 records from each partition
+data_female = sample_n(data_female, 3500)
+data_male = sample_n(data_male, 3500)
+new_data = rbind(data_male,data_female)
+model <- naiveBayes(as.factor(sex) ~ age + income + educ, data=new_data)
+model
+testPred <- predict(model, data_test, type="class")
+Matrix <- confusionMatrix(testPred, as.factor(data_test$sex))
+message("Accuracy")
+Matrix$overall[1]
+```    
+
+Conditional probabilities are very close over the entire sample. 
+
