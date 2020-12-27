@@ -1,0 +1,177 @@
+---
+title: "Time Series"
+author: "Truong Thi An Hai"
+date: "12/25/2020"
+output: html_document
+---
+
+### 4.8 (Time Series)  A classic dataset used in time series lectures is the quarterly earnings per share (EPS) for Johnson & Johnson stock.  Shumway and Stoffer [2006] utilize this dataset in their text and provide a copy of the dataset. 
+
+### a. After obtaining a copy of the dataset, plot the quarterly EPS vs. time.  Describe any patterns that you observe. 
+
+```{r}
+data <- scan("C:/Users/hp/Desktop/jj.dat")
+data <- ts(data, start = 1960, frequency = 4)
+data
+plot(data)
+
+``` 
+
+#### The quarterly EPS for Johnson & Johnson stock shows a strong increasing trend, with strong seasonality. There is no evidence of any cyclic behavior here.  
+
+
+### b. In order to perform an ARIMA model, the time series will need to be transformed to remove any trend.  Plot the difference of xt and xt-1, for all t > 0.   Has this difference adequately detrended the series? Does the variability of the EPS appear constant over time?  Why does the constant variance matter? 
+```{r}
+diffdata <- diff(data)
+diffdata
+plot(diffdata)
+```  
+
+#### It seems to be this difference has adequately detrended the series because this has the effect of removing a trend from a time series dataset. 
+
+#### The variability of the EPS does not appear constant over time  
+
+#### The variance needs to be constant over time to ensure the time series we obtain is a stationary time series. Stationarity is an important concept in the field of time series analysis with tremendous influence on how the data is perceived and predicted. When forecasting or predicting the future, most time series models assume that each point is independent of one another. The best indication of this is when the dataset of past instances is stationary. For data to be stationary, the statistical properties of a system do not change over time. This does not mean that the values for each data point have to be the same, but the overall behavior of the data should remain constant.   
+
+### c. Plot the log10 of the quarterly EPS vs. time and plot the difference of log10(xt ) and log10(xt-1) for all t > 0.  Has this adequately detrended the series?  Has the variability of the differenced log10(EPS) become more constant?  
+
+```{r}
+logdata <- log10(data)
+difflogdata <- diff(logdata)
+plot(difflogdata)
+
+```  
+
+#### This difference has adequately detrended the series because this has the effect of removing a trend from a time series dataset. 
+#### And the variability of the differenced log10(EPS) has become more constant  
+
+### d. Treating the differenced log10 of the EPS series as a stationary series, plot the ACF and PACF of this series.  What possible ARIMA models would you consider and why?
+
+
+```{r}
+# plot a correlogram 
+acf(difflogdata)
+
+# plot a partial correlogram 
+pacf(difflogdata)
+
+```  
+
+#### Note that the LAG axis is in terms of frequency, so 1,2,3,4,5 correspond to lags 4,8,12,16,20 because frequency=4 here.  
+
+#### From the partial autocorrelogram, we see that the partial autocorrelation at lags 1, 2, 3 is negative and exceeds the significance bounds, while the partial autocorrelation at lag 4 is positive and also exceeds the significance bounds. The partial autocorrelations tail off to zero after lag 4.
+
+#### That suggestive of an AR(4) model. So an initial candidate model is an ARIMA(4,1,0). There are no other obvious candidate models. We fit an ARIMA(4,1,0) model along with variations including ARIMA(3,1,0), ARIMA(5,1,0), ARIMA(4,1,1), ARIMA(4,1,2)
+
+###e. Run the proposed ARIMA models from part d and compare the results.  Identify an appropriate model.  Justify your choice.
+
+```{r}
+# fit an ARIMA(4,1,0) model
+ari1 <- arima(logdata, order = c(4,1,0)) 
+ari1
+# fit an ARIMA(3,1,0) model
+ari2 <- arima(logdata, order = c(3,1,0)) 
+ari2
+# fit an ARIMA(2,1,0) model
+ari3 <- arima(logdata, order = c(2,1,0)) 
+ari3
+# fit an ARIMA(4,1,1) model
+ari4 <- arima(logdata, order = c(4,1,1))
+ari4
+# fit an ARIMA(4,1,2) model
+ari5 <- arima(logdata, order = c(4,1,2))
+ari5
+```  
+
+
+#### Of these, the ARIMA(4,1,1) has a slightly smaller AICc value. So ARIMA model (4,1,1) is probably the best choice in this case  
+ 
+ 
+### 4.9 (Time Series)  Why is the choice of natural log or log base 10 in Problem 4.8 somewhat irrelevant to the transformation and the analysis? 
+
+#### Our purpose is to define the p (Auto Regressive) and q (Moving Average), thereby creating the ARIMA model. When converting the data to log (or ln), we here simply create the ARIMA model for the log of the data, and the result for the prediction will be the log of the required result. So the choice of natural log or log base 10 in Problem 4.8 somewhat irrelevant to the transformation and the analysis
+
+### 4.10 (Time Series)  Why is the value of the ACF for lag 0 equal to one?
+![k -lags](C:/Users/hp/Desktop/acf.png)
+
+
+#### So with k=0, acf(x)0 = 1 - the correlation of a time series with itself
+
+### 4.11 (Time Series) Using arima.sim in R, simulate 10,000 points for AR(p) p = 1,2,3,4. Plot the simulated series, ACF and PACF.  What pattern emerges between p and the plots? 
+
+#### AR(4)
+```{r}
+ts.sim_AR4 <- arima.sim(n = 10000, list(ar = c(0.9, -0.5, .2, -.3)))
+plot(ts.sim_AR4)
+acf(ts.sim_AR4)
+pacf(ts.sim_AR4)
+
+```
+
+#### AR(3)
+```{r}
+ts.sim_AR3 <- arima.sim(n = 10000, list(ar = c(0.9, -0.5, .2)))
+plot(ts.sim_AR3)
+acf(ts.sim_AR3)
+pacf(ts.sim_AR3)
+
+``` 
+
+#### AR(2)
+```{r}
+ts.sim_AR2 <- arima.sim(n = 10000, list(ar = c(0.9, -0.5)))
+plot(ts.sim_AR2)
+acf(ts.sim_AR2)
+pacf(ts.sim_AR2)
+
+```  
+
+#### AR(1)
+```{r}
+ts.sim_AR1 <- arima.sim(n = 10000, list(ar = c(0.9)))
+plot(ts.sim_AR1)
+acf(ts.sim_AR1)
+pacf(ts.sim_AR1)
+
+```   
+
+#### The change in the plots has strong seasonality and there is no trend in there.
+
+### 4.12 (Time Series)  Using arima.sim in R, simulate 10,000 points for MA(p) p = 1,2,3,4. Plot the simulated series, ACF and PACF.  What pattern emerges between p and the plots? 
+
+#### MA(4)
+```{r}
+sim_MA4 <- arima.sim(n = 10000, list( ma = c(-1.9, 1.7, -1.5, 1.5)))
+plot(sim_MA4)
+acf(sim_MA4)
+pacf(sim_MA4)
+```
+
+#### MA(3)
+```{r}
+sim_MA3 <- arima.sim(n = 10000, list( ma = c(-1.9, 1.7, -1.5)))
+plot(sim_MA3)
+acf(sim_MA3)
+pacf(sim_MA3)
+``` 
+
+#### MA(2)
+```{r}
+sim_MA2 <- arima.sim(n = 10000, list( ma = c(-1.9, 1.7)))
+plot(sim_MA2)
+acf(sim_MA2)
+pacf(sim_MA2)
+```  
+
+#### MA(1)
+```{r}
+sim_MA1 <- arima.sim(n = 10000, list( ma = c(-1.9)))
+plot(sim_MA1)
+acf(sim_MA1)
+pacf(sim_MA1)
+``` 
+
+#### => The change in the plots has strong seasonality and there is no trend in there. 
+
+
+***THE END***
